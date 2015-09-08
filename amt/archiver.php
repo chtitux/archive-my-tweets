@@ -56,6 +56,21 @@ class Archiver {
         $numExceptions  = 0;
         $maxExceptions  = 25; // don't get stuck in the loop if twitter is down
 
+        // Get the ID of the latest Tweet, and do not search tweets before this id
+        try {
+            $lastTweetData = $this->model->getLatestTweet();
+            if($lastTweetData) {
+                $t = new Tweet();
+                $t->load($lastTweetData);
+                $sinceId = $t->id;
+                $str .= "since id: $sinceId\n";
+            }
+        }
+        catch(\Exception $e) {
+            $str .= 'Exception: ' . $e->getMessage() . "\n";
+        }
+
+
         while ($gotResults) {
 
             $str .= "max id: " . (($maxId === null) ? 'null' : $maxId) . "\n";
