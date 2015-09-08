@@ -50,7 +50,7 @@ class App {
 
         // Model
         try {
-            $dsn  = "mysql:host=".$this->config['db']['host'].";dbname=".$this->config['db']['database'].";charset=utf8";
+            $dsn  = $this->config['db']['engine'].":host=".$this->config['db']['host'].";dbname=".$this->config['db']['database'];
             $user = $this->config['db']['username'];
             $pass = $this->config['db']['password'];
             $db = new \PDO($dsn, $user, $pass);

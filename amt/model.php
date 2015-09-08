@@ -364,8 +364,7 @@ class Model {
      * @return boolean Returns true if the database table exists, or false if the table hasn't been created.
      */
     public function isInstalled() {
-
-        $stmt = $this->db->prepare("show tables like '" . $this->table . "'");
+        $stmt = $this->db->prepare("SELECT table_name FROM information_schema.tables WHERE table_schema = 'public' and table_name = '". $this->table . "'");
         $status = $stmt->execute();
         return ($status && $stmt->rowCount());
 
@@ -379,7 +378,18 @@ class Model {
      */
     public function install() {
 
-        $stmt = $this->db->prepare('create table '.$this->table.' ( id bigint(20) unsigned not null unique, user_id bigint(20) unsigned not null, created_at datetime not null, tweet varchar(140), source varchar(255), truncated tinyint(1), favorited tinyint(1), in_reply_to_status_id bigint(20), in_reply_to_user_id bigint(20), in_reply_to_screen_name varchar(15), index(source) ) ENGINE=MyISAM DEFAULT CHARSET=utf8;');
+        $stmt = $this->db->prepare('create table '.$this->table.' (
+  id serial,
+  user_id bigint not null,
+  created_at timestamp not null,
+  tweet varchar(140),
+  source varchar(255),
+  truncated boolean,
+  favorited boolean,
+  in_reply_to_status_id bigint,
+  in_reply_to_user_id bigint,
+  in_reply_to_screen_name varchar(15)
+);');
 
         // TODO: run SQL updates here, each in its own function
 

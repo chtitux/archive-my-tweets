@@ -27,6 +27,7 @@ if (file_exists(dirname(__FILE__).'/config.php')) {
 			'oauthSecret'    => TWITTER_OAUTH_SECRET
 		),
 		'db' => array(
+			'engine'   => DB_ENGINE,
 			'host'     => DB_HOST,
 			'username' => DB_USERNAME,
 			'password' => DB_PASSWORD,

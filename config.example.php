@@ -18,7 +18,8 @@ define('TWITTER_CONSUMER_SECRET', '');
 define('TWITTER_OAUTH_TOKEN',  '');
 define('TWITTER_OAUTH_SECRET', '');
 
-// mysql database credentials
+// SQL database credentials
+define('DB_ENGINE',   'mysql');
 define('DB_USERNAME', '');
 define('DB_PASSWORD', '');
 define('DB_NAME',     '');

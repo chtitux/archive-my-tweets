@@ -84,7 +84,7 @@ class Installer {
             // test database connection
             if (!$installProblem) {
                 try {
-                    $dsn  = "mysql:host=".$this->data['form']['databaseHost'].";dbname=".$this->data['form']['databaseDatabase'].";charset=utf8";
+                    $dsn  = $this->data['form']['databaseEngine'].":host=".$this->data['form']['databaseHost'].";dbname=".$this->data['form']['databaseDatabase'];
                     $user = $this->data['form']['databaseUsername'];
                     $pass = $this->data['form']['databasePassword'];
                     $db = new \PDO($dsn, $user, $pass);
@@ -194,7 +194,7 @@ class Installer {
         }
 
         // do one last check to require all fields without a specific check
-        $requiredFields = array('twitterName', 'twitterUsername', 'consumerKey', 'consumerSecret', 'oauthToken', 'oauthSecret', 'baseUrl', 'timezone', 'cronKey', 'databaseHost', 'databaseDatabase', 'databaseUsername', 'databasePassword', 'databasePrefix');
+        $requiredFields = array('twitterName', 'twitterUsername', 'consumerKey', 'consumerSecret', 'oauthToken', 'oauthSecret', 'baseUrl', 'timezone', 'cronKey', 'databaseEngine', 'databaseHost', 'databaseDatabase', 'databaseUsername', 'databasePassword', 'databasePrefix');
         foreach ($requiredFields as $field) {
             if (!isset($errors[$field]) && strlen(trim($data[$field])) < 1) {
                 $errors[$field] = 'This field is required.';
@@ -263,6 +263,7 @@ class Installer {
         $config .= "define('TWITTER_CONSUMER_SECRET', '".htmlspecialchars($data['consumerSecret'], ENT_QUOTES)."');\n";
         $config .= "define('TWITTER_OAUTH_TOKEN',     '".htmlspecialchars($data['oauthToken'], ENT_QUOTES)."');\n";
         $config .= "define('TWITTER_OAUTH_SECRET',    '".htmlspecialchars($data['oauthSecret'], ENT_QUOTES)."');\n";
+        $config .= "define('DB_ENGINE',               '".htmlspecialchars($data['databaseEngine'], ENT_QUOTES)."');\n";
         $config .= "define('DB_USERNAME',             '".htmlspecialchars($data['databaseUsername'], ENT_QUOTES)."');\n";
         $config .= "define('DB_PASSWORD',             '".htmlspecialchars($data['databasePassword'], ENT_QUOTES)."');\n";
         $config .= "define('DB_NAME',                 '".htmlspecialchars($data['databaseDatabase'], ENT_QUOTES)."');\n";
