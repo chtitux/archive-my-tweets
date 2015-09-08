@@ -39,6 +39,10 @@ class Model {
         $stmt = $this->db->prepare("select * from ".$this->table." where id=:id limit 1");
         $stmt->bindValue(':id', $id, PDO::PARAM_INT);
         $status = $stmt->execute();
+        if (!$status) {
+            $errorInfo = $stmt->errorInfo();
+            Throw new \Exception($errorInfo[2]);
+        }
 
         if ($status && $stmt->rowCount()) {
             return $stmt->fetch();
@@ -59,6 +63,10 @@ class Model {
         $stmt = $this->db->prepare("select * from ".$this->table." where id < :id order by id desc limit 1");
         $stmt->bindValue(':id', $id, PDO::PARAM_INT);
         $status = $stmt->execute();
+        if (!$status) {
+            $errorInfo = $stmt->errorInfo();
+            Throw new \Exception($errorInfo[2]);
+        }
 
         if ($status && $stmt->rowCount()) {
             return $stmt->fetch();
@@ -79,6 +87,10 @@ class Model {
         $stmt = $this->db->prepare("select * from ".$this->table." where id > :id order by id asc limit 1");
         $stmt->bindValue(':id', $id, PDO::PARAM_INT);
         $status = $stmt->execute();
+        if (!$status) {
+            $errorInfo = $stmt->errorInfo();
+            Throw new \Exception($errorInfo[2]);
+        }
 
         if ($status && $stmt->rowCount()) {
             return $stmt->fetch();
@@ -98,20 +110,29 @@ class Model {
         $stmt = $this->db->prepare("select * from ".$this->table." order by id desc limit 1");
         $status = $stmt->execute();
 
-        if ($status && $stmt->rowCount()) {
+        if (!$status) {
+            $errorInfo = $stmt->errorInfo();
+            Throw new \Exception($errorInfo[2]);
+        }
+        elseif ($status && $stmt->rowCount()) {
             return $stmt->fetch();
         } else {
             return false;
         }
-
     }
 
     public function getTweets($offset=0, $perPage=50) {
 
-        $stmt = $this->db->prepare("select * from ".$this->table." order by id desc limit :offset,:perPage");
+        $stmt = $this->db->prepare("select * from ".$this->table." order by id desc offset :offset limit :perPage");
         $stmt->bindValue(':offset', (int)$offset, PDO::PARAM_INT);
         $stmt->bindValue(':perPage', (int)$perPage, PDO::PARAM_INT);
-        $stmt->execute();
+        $status = $stmt->execute();
+
+        if (!$status) {
+            $errorInfo = $stmt->errorInfo();
+            Throw new \Exception($errorInfo[2]);
+        }
+
         return $stmt->fetchAll();
 
     }
@@ -123,9 +144,9 @@ class Model {
         }
 
         if ($count) {
-            $sql  = 'select count(*) as total from '.$this->table.' where 1 ';
+            $sql  = 'select count(*) as total from '.$this->table.' where ';
         } else {
-            $sql  = 'select * from '.$this->table.' where 1 ';
+            $sql  = 'select * from '.$this->table.' where ';
         }
 
         // split out the quoted items
@@ -137,7 +158,7 @@ class Model {
         $word_list = array_merge($phrases[1], $words);
 
         // create the sql statement
-        $sql .= 'AND (';
+        $sql .= '(';
         $wordParams = array();
         $i = 1;
         foreach ($word_list as $word) {
@@ -149,10 +170,14 @@ class Model {
             }
         }
         $sql = rtrim($sql, " or "); // remove that dangling "or"
-        $sql .= ') order by id desc';
+        $sql .= ')';
+        if($count) {
+            $sql .= ' group by id ';
+        }
+        $sql .= ' order by id desc';
 
         if (!$count) {
-            $sql .= ' limit :offset,:perPage';
+            $sql .= ' offset :offset limit :perPage';
         }
 
         // bind each search term
@@ -164,7 +189,12 @@ class Model {
             $stmt->bindValue(':offset', (int)$offset, PDO::PARAM_INT);
             $stmt->bindValue(':perPage', (int)$perPage, PDO::PARAM_INT);
         }
-        $stmt->execute();
+        $status = $stmt->execute();
+        if (!$status) {
+            $errorInfo = $stmt->errorInfo();
+            Throw new \Exception($errorInfo[2]);
+        }
+
 
         if ($count) {
             $row = $stmt->fetch();
@@ -177,32 +207,48 @@ class Model {
 
     public function getFavoriteTweets($offset=0, $perPage=50) {
 
-        $stmt = $this->db->prepare("select * from ".$this->table." where favorited=1 order by id desc limit :offset,:perPage");
+        $stmt = $this->db->prepare("select * from ".$this->table." where favorited=true order by id desc offset :offset limit :perPage");
         $stmt->bindValue(':offset', (int)$offset, PDO::PARAM_INT);
         $stmt->bindValue(':perPage', (int)$perPage, PDO::PARAM_INT);
-        $stmt->execute();
+        $status = $stmt->execute();
+
+        if (!$status) {
+            $errorInfo = $stmt->errorInfo();
+            Throw new \Exception($errorInfo[2]);
+        }
+
         return $stmt->fetchAll();
 
     }
 
     public function getTweetsByMonth($year, $month, $offset=0, $perPage=50) {
 
-        $stmt = $this->db->prepare('select * from '.$this->table.' where year(created_at)=:year and month(created_at)=:month order by id desc limit :offset,:perPage');
+        $stmt = $this->db->prepare('select * from '.$this->table.' where extract(year from created_at)=:year and extract(month from created_at)=:month order by id desc offset :offset limit :perPage');
         $stmt->bindValue(':year', (int)$year, PDO::PARAM_INT);
         $stmt->bindValue(':month', (int)$month, PDO::PARAM_INT);
         $stmt->bindValue(':offset', (int)$offset, PDO::PARAM_INT);
         $stmt->bindValue(':perPage', (int)$perPage, PDO::PARAM_INT);
-        $stmt->execute();
+        $status = $stmt->execute();
+        if (!$status) {
+            $errorInfo = $stmt->errorInfo();
+            Throw new \Exception($errorInfo[2]);
+        }
+
         return $stmt->fetchAll();
 
     }
 
     public function getTweetsByMonthCount($year, $month) {
 
-        $stmt = $this->db->prepare('select count(*) as total from '.$this->table.' where year(created_at)=:year and month(created_at)=:month order by id desc');
+        $stmt = $this->db->prepare('select count(id) as total from '.$this->table.' where extract(year from created_at)=:year and extract(month from created_at)=:month group by id order by id desc');
         $stmt->bindValue(':year', (int)$year, PDO::PARAM_INT);
         $stmt->bindValue(':month', (int)$month, PDO::PARAM_INT);
-        $stmt->execute();
+        $status = $stmt->execute();
+        if (!$status) {
+            $errorInfo = $stmt->errorInfo();
+            Throw new \Exception($errorInfo[2]);
+        }
+
         $row = $stmt->fetch();
         return $row['total'];
 
@@ -210,20 +256,30 @@ class Model {
 
     public function getTweetsByClient($client, $offset=0, $perPage=50) {
 
-        $stmt = $this->db->prepare('select * from '.$this->table.' where source REGEXP CONCAT("(<a.*>)?", :client, "(</a>)?") order by id desc limit :offset,:perPage');
+        $stmt = $this->db->prepare('select * from '.$this->table.' where source SIMILAR TO \'(<a%>|)%\'||:client||\'%(</a>|)\' order by id desc offset :offset limit :perPage');
         $stmt->bindValue(':client', $client, PDO::PARAM_STR);
         $stmt->bindValue(':offset', (int)$offset, PDO::PARAM_INT);
         $stmt->bindValue(':perPage', (int)$perPage, PDO::PARAM_INT);
-        $stmt->execute();
+        $status = $stmt->execute();
+        if (!$status) {
+            $errorInfo = $stmt->errorInfo();
+            Throw new \Exception($errorInfo[2]);
+        }
+
         return $stmt->fetchAll();
 
     }
 
     public function getTweetsByClientCount($client) {
 
-        $stmt = $this->db->prepare('select count(*) as total from '.$this->table.' where source REGEXP CONCAT("(<a.*>)?", :client, "(</a>)?")');
+        $stmt = $this->db->prepare('select count(*) as total from '.$this->table.' where source SIMILAR TO \'(<a%>|)%\'||:client||\'%(</a>|)\'');
         $stmt->bindValue(':client', $client, PDO::PARAM_STR);
-        $stmt->execute();
+        $status = $stmt->execute();
+        if (!$status) {
+            $errorInfo = $stmt->errorInfo();
+            Throw new \Exception($errorInfo[2]);
+        }
+
         $row = $stmt->fetch();
         return $row['total'];
 
@@ -231,16 +287,27 @@ class Model {
 
     public function getTwitterMonths() {
 
-        $stmt = $this->db->prepare('select year(created_at) as y, month(created_at) as m, count(*) AS total FROM '.$this->table.' GROUP BY year(created_at),month(created_at) order by created_at desc');
-        $stmt->execute();
+        $stmt = $this->db->prepare('
+select extract(year from created_at) as y, extract(month from created_at) as m, count(id) AS total FROM '.$this->table.' GROUP BY extract(year from created_at), extract(month from created_at) order by y, m');
+        $status = $stmt->execute();
+        if (!$status) {
+            $errorInfo = $stmt->errorInfo();
+            Throw new \Exception($errorInfo[2]);
+        }
+
         return $stmt->fetchAll();
 
     }
 
     public function getMostTweetsInAMonth() {
 
-        $stmt = $this->db->prepare('select year(created_at) as y, month(created_at) as m, count(*) AS total FROM '.$this->table.' GROUP BY year(created_at),month(created_at) order by total desc limit 1');
-        $stmt->execute();
+        $stmt = $this->db->prepare('select extract(year from created_at) as y, extract(month from created_at) as m, count(*) AS total FROM '.$this->table.' GROUP BY extract(year from created_at),extract(month from created_at) order by total desc limit 1');
+        $status = $stmt->execute();
+        if (!$status) {
+            $errorInfo = $stmt->errorInfo();
+            Throw new \Exception($errorInfo[2]);
+        }
+
         $row = $stmt->fetch();
         return $row['total'];
 
@@ -249,7 +316,12 @@ class Model {
     public function getTwitterClients() {
 
         $stmt = $this->db->prepare('select source, count(*) as total, count(source) as c from '.$this->table.' group by source order by count(source) desc');
-        $stmt->execute();
+        $status = $stmt->execute();
+        if (!$status) {
+            $errorInfo = $stmt->errorInfo();
+            Throw new \Exception($errorInfo[2]);
+        }
+
         return $stmt->fetchAll();
 
     }
@@ -257,7 +329,12 @@ class Model {
     public function getMostPopularClientTotal() {
 
         $stmt = $this->db->prepare('select count(*) AS total FROM '.$this->table.' GROUP BY source order by total desc limit 1');
-        $stmt->execute();
+        $status = $stmt->execute();
+        if (!$status) {
+            $errorInfo = $stmt->errorInfo();
+            Throw new \Exception($errorInfo[2]);
+        }
+
         $row = $stmt->fetch();
         return $row['total'];
 
@@ -266,7 +343,12 @@ class Model {
     public function getTotalTweets() {
 
         $stmt = $this->db->prepare('select count(*) as total from '.$this->table);
-        $stmt->execute();
+        $status = $stmt->execute();
+        if (!$status) {
+            $errorInfo = $stmt->errorInfo();
+            Throw new \Exception($errorInfo[2]);
+        }
+
         $row = $stmt->fetch();
         return $row['total'];
 
@@ -274,8 +356,13 @@ class Model {
 
     public function getTotalFavoriteTweets() {
 
-        $stmt = $this->db->prepare('select count(*) as total from '.$this->table.' where favorited=1');
-        $stmt->execute();
+        $stmt = $this->db->prepare('select count(*) as total from '.$this->table.' where favorited=true');
+        $status = $stmt->execute();
+        if (!$status) {
+            $errorInfo = $stmt->errorInfo();
+            Throw new \Exception($errorInfo[2]);
+        }
+
         $row = $stmt->fetch();
         return $row['total'];
 
@@ -284,7 +371,12 @@ class Model {
     public function getTotalClients() {
 
         $stmt = $this->db->prepare('select count(distinct source) as total from '.$this->table);
-        $stmt->execute();
+        $status = $stmt->execute();
+        if (!$status) {
+            $errorInfo = $stmt->errorInfo();
+            Throw new \Exception($errorInfo[2]);
+        }
+
         $row = $stmt->fetch();
         return $row['total'];
 
@@ -301,7 +393,7 @@ class Model {
         if (count($tweets)) {
 
             // "insert ignore" will ignore rows with an id that already exists in the table
-            $sql = 'insert ignore into '.$this->table." (id,user_id,created_at,tweet,source,truncated,favorited,in_reply_to_status_id,in_reply_to_user_id,in_reply_to_screen_name) values";
+            $sql = 'insert into '.$this->table." (id,user_id,created_at,tweet,source,truncated,favorited,in_reply_to_status_id,in_reply_to_user_id,in_reply_to_screen_name) values";
 
             $i = 0;
             $params = array();
@@ -342,6 +434,11 @@ class Model {
                 $stmt->bindValue($key, $value, $paramType);
             }
             $status = $stmt->execute();
+            if (!$status) {
+                $errorInfo = $stmt->errorInfo();
+                Throw new \Exception($errorInfo[2]);
+            }
+
             return $stmt->rowCount();
 
         }
