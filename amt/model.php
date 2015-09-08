@@ -307,6 +307,17 @@ class Model {
             $params = array();
             $values = array();
             foreach ($tweets as $t) {
+                // Do not insert an already inserted tweet
+                $stmt = $this->db->prepare('select count(*) as total from '.$this->table.' where id=:id');
+                $stmt->bindValue(':id', (int)$t->id, PDO::PARAM_INT);
+                $status = $stmt->execute();
+                if (!$status) {
+                    $errorInfo = $stmt->errorInfo();
+                    Throw new \Exception($errorInfo[2]);
+                }
+                $row = $stmt->fetch();
+                if( $row['total'] ) {  continue; }
+                
                 $params[':id'.$i] = $t->id;
                 $params[':user_id'.$i] = $t->user_id;
                 $params[':created_at'.$i] = $t->created_at;
